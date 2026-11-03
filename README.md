@@ -1,0 +1,34 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# churchnearyou
+
+<!-- badges: start -->
+
+<!-- badges: end -->
+
+Scrape tidy data from the Church of England’s [A Church Near
+You](https://www.achurchnearyou.com/) service. A work in progress.
+Currently you can use `cny_churches()` to get parish codes and Church
+Near You urls for every church in the Church of England, and you can
+pass the urls to `cny_scrape()` to get tidy data on the events listed
+for each church.
+
+## Installation
+
+You can install the development version of churchnearyou from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("pak")
+pak::pak("Church-Army/churchnearyou")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+``` r
+# library(churchnearyou)
+## basic example code
+```
