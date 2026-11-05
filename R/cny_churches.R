@@ -26,16 +26,39 @@ churches <- function(select, where){
 
   church_layer <- "https://services5.arcgis.com/KDRjxGRQDVgVtFTS/arcgis/rest/services/Churches_July2026/FeatureServer/0/query"
 
+  result_tibble <- tibble::tibble()
+  resultOffset <- 0
+
   request <-
     httr2::request(church_layer) |>
-    httr2::req_user_agent("R package churcnearyou - development version") |>
-    httr2::req_url_query(where = where, outFields = select,
-                         returnGeometry = "false", f = "json")
+    httr2::req_user_agent("R package churchnearyou - development version") |>
+    httr2::req_throttle(capacity = 20, fill_time_s = 60)
 
-  httr2::req_perform(request) |>
-    httr2::resp_body_json() |>
-    purrr::pluck("features") |>
-    purrr::map("attributes") |>
-    purrr::list_transpose() |>
-    tibble::as_tibble()
+  repeat{
+
+    req_iteration <-
+      httr2::req_url_query(request,
+                           where = where, outFields = select,
+                           resultOffset = resultOffset,
+                           returnGeometry = "false", f = "json")
+
+    latest_tibble <-
+      httr2::req_perform(req_iteration) |>
+      httr2::resp_body_json() |>
+      purrr::pluck("features") |>
+      purrr::map("attributes") |>
+      purrr::list_transpose() |>
+      tibble::as_tibble()
+
+    ## Stop repeating if the tibble was empty
+    if(nrow(latest_tibble) == 0) break
+
+    ## Row-bind latest tibble with previous results
+    result_tibble <- rbind(result_tibble, latest_tibble)
+
+    ## Increment resultOffset to get next 200 rows
+    resultOffset <- resultOffset + 2000
   }
+
+  result_tibble
+}
