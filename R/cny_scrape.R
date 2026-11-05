@@ -196,7 +196,7 @@ cny_scrape_contact <- function(cny_url){
         }
 
         phone <-
-          all_dests[stringr::str_detect(all_dests, "tel\\:[0-9 \\+-\\(\\)(ext)(extension)")] |>
+          all_dests[stringr::str_detect(all_dests, "tel\\:[0-9 \\+\\-\\(\\)(ext|extension)]")] |>
           stringr::str_remove("tel\\:")
 
         if(length(phone) == 0) phone <- NA_character_
@@ -228,7 +228,7 @@ cny_scrape_contact <- function(cny_url){
 
         socials_tibble <- tibble::as_tibble(social_links)
 
-        tibble(
+        tibble::tibble(
           acny_url = cny_page_url(req),
           website = website[1], phone = phone) |>
           cbind(socials_tibble)
