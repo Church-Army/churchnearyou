@@ -9,6 +9,31 @@ where_in <- function(x, field_name, quotes = FALSE){
   out
 }
 
+create_where_string <-
+  function(diocese_name = NULL,
+           diocese_number = NULL,
+           church_code = NULL,
+           parish_id = NULL,
+           where = ""){
+
+    diocese_name <- where_in(diocese_name, "DioNa", quotes = TRUE)
+    diocese_number <- where_in(diocese_number, "DioID")
+    church_code <- where_in(church_code, "Church_Cod")
+    parish_id <- where_in(parish_id)
+
+
+    out <- paste0(diocese_name, diocese_number, church_code, parish_id,
+           where,
+           collapse = " AND ")
+
+
+
+    if(out == "") out = "1=1"
+
+    out
+
+  }
+
 #'
 #'
 #' @export
@@ -18,15 +43,14 @@ cny_churches <- function(diocese_name = NULL,
                          parish_id = NULL,
                          where = ""){
 
-  diocese_name <- where_in(diocese_name, "DioNa", quotes = TRUE)
-  diocese_number <- where_in(diocese_number, "DioID")
-  churh_code <- where_in(church_code, "Church_Cod")
-  parish_id <- where_in(parish_id)
-
-  where_string <- paste0(diocese_name, diocese_number, church_code, parish_id,
-                         where, collapse = " AND ")
-
-  if(where_string == "") where_string <- "1=1"
+  where_string <-
+    create_where_string(
+    diocese_name = diocese_name,
+    diocese_number = diocese_number,
+    church_code = church_code,
+    parish_id = parish_id,
+    where = where
+  )
 
   result <- churches("*", where = where_string)
 
