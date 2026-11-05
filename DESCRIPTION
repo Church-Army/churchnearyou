@@ -15,5 +15,6 @@ Imports:
     httr2,
     purrr,
     rvest,
+    stringr,
     tibble
 Config/roxygen2/version: 8.1.0
