@@ -197,6 +197,10 @@ cny_scrape_contact <- function(cny_url){
 
         if(length(phone) == 0) phone <- NA_character_
 
+        phone <- phone[1]
+
+
+
         external_links <-
           all_dests[
             stringr::str_detect(
