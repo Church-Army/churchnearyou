@@ -1,9 +1,16 @@
 ## HELPERS ##
 
-## Create a httr2 request for use by this package
-cny_request <- function(url){
+## get cny url num from url
 
-  httr2::request(url) |>
+cny_url_num <- function(url){
+  stringr::str_extract(url, "\\d+")
+}
+
+## Create a httr2 request for use by this package
+cny_request <- function(acny_url_num){
+
+  httr2::request("https://www.achurchnearyou.com") |>
+    httr2::req_url_path("church", acny_url_num) |>
     httr2::req_throttle(capacity = 120, fill_time_s = 60) |>
     httr2::req_user_agent("R Package 'churchnearyou' (in development) https://github.com/church-army/churchnearyou")
 }
@@ -26,11 +33,17 @@ cny_scrape_events <- function(cny_url){
 
   ## Perform requests and parse html data -------------------------------------------------
 
-  events_req <- map_append_path(cny_url, "service-and-events/events-all/")
+  cny_nums <- cny_url_num(cny_url)
 
-  events_resp <- req_perform_parallel(events_req, progress = "Obtaining Church Near You Data")
+  if(any(is.na(cny_nums))) stop("Missing/unnaceptable URLs provided.")
 
-  events_html <- purrr::map(events_resp, resp_body_html)
+  requests <- purrr::map(cny_nums, cny_request)
+
+  events_req <- map_append_path(requests, "service-and-events/events-all/")
+
+  events_resp <- httr2::req_perform_parallel(events_req, progress = "Obtaining Church Near You Data")
+
+  events_html <- purrr::map(events_resp, httr2::resp_body_html)
 
   ## Extract 'event cards' for each cny url ------------------------------------------------
 
@@ -56,7 +69,7 @@ cny_scrape_events <- function(cny_url){
             descriptions <- rvest::html_elements(card_meta, ".meta__description")
 
             # event name ---
-            event_names_text <- get_text(card_title)
+            event_name_text <- get_text(card_title)
 
             # event description ---
             event_description <-
@@ -154,8 +167,6 @@ cny_scrape_contact <- function(cny_url){
                          progress = "Obtaining Church Near You Data")
 
   get_in_touch_html <- purrr::map(events_resp, resp_body_html)
-
-
 
 }
 
