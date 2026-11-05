@@ -189,10 +189,14 @@ cny_scrape_contact <- function(cny_url){
       \(html, req){
 
         all_dests <- rvest::html_elements(html, "a") |>
-          html_attr("href")
+          rvest::html_attr("href")
+
+        is_phone_number <- function(x){
+          stringr::str_detect(x, "tel\\:")
+        }
 
         phone <-
-          all_dests[stringr::str_detect(all_dests, "tel\\:")] |>
+          all_dests[stringr::str_detect(all_dests, "tel\\:[0-9 \\+-\\(\\)(ext)(extension)")] |>
           stringr::str_remove("tel\\:")
 
         if(length(phone) == 0) phone <- NA_character_
