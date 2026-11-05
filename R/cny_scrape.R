@@ -38,6 +38,7 @@ cny_scrape_events <- function(cny_url){
   if(any(is.na(cny_nums))) stop("Missing/unnaceptable URLs provided.")
 
   requests <- purrr::map(cny_nums, cny_request)
+  request_strings <- purrr::map_chr(requests, "url")
 
   events_req <- map_append_path(requests, "service-and-events/events-all/")
 
@@ -51,11 +52,11 @@ cny_scrape_events <- function(cny_url){
 
     purrr::map2(
 
-      events_html, cny_url,
+      events_html, request_strings,
 
-      \(x, y){
+      \(result, url_string){
 
-        events <- rvest::html_elements(x, ".card__summary")
+        events <- rvest::html_elements(result, ".card__summary")
 
         ## Extract key data points from each 'event card' ::::::::::::::::::::::::::::::::::
 
@@ -134,7 +135,7 @@ cny_scrape_events <- function(cny_url){
 
             # combine into tibble ---
             tibble::tibble(
-              acny_url = y,
+              acny_url = url_string,
               event_name = event_name_text,
               event_description = event_description_text,
               event_time = event_time_text,
