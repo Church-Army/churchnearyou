@@ -28,8 +28,14 @@ churches <- function(select, where){
 
   request <-
     httr2::request(church_layer) |>
-    httr2::req_url_query(where = where, outFields = select, returnGeometry = "false", f = "geojson")
+    httr2::req_user_agent("R package churcnearyou - development version") |>
+    httr2::req_url_query(where = where, outFields = select,
+                         returnGeometry = "false", f = "json")
 
-  sf::st_read(request$url, quiet = TRUE)
-
+  httr2::req_perform(request) |>
+    httr2::resp_body_json() |>
+    purrr::pluck("features") |>
+    purrr::map("attributes") |>
+    purrr::list_transpose() |>
+    tibble::as_tibble()
   }

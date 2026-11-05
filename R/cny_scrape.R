@@ -144,10 +144,18 @@ cny_scrape_events <- function(cny_url){
 
 #' Get tidy data on church contact details
 #' @export
-#'
 cny_scrape_contact <- function(cny_url){
 
-  get_in_touch_url <- paste0(cny_url, "/get-in-touch/")
+  # make requests and parse html ---------------------------------------
+  get_in_touch_req <- map_append_path(cny_url, "/get-in-touch/")
+
+  get_in_touch_resp <-
+    req_perform_parallel(events_req,
+                         progress = "Obtaining Church Near You Data")
+
+  get_in_touch_html <- purrr::map(events_resp, resp_body_html)
+
+
 
 }
 
