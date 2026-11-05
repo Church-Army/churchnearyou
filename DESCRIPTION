@@ -11,6 +11,7 @@ Roxygen: list(markdown = TRUE)
 URL: https://github.com/Church-Army/churchnearyou
 BugReports: https://github.com/Church-Army/churchnearyou/issues
 Imports: 
+    dplyr,
     httr,
     httr2,
     purrr,

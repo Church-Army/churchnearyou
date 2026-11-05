@@ -25,19 +25,27 @@ cny_query <-
 
   }
 
-cny_query_events <- function(...){
+cny_query_scrape <- function(scrape_function, ...){
 
   result <- cny_query(...)
-
 
   urls <- result$acny_url
 
   urls <- urls[!is.na(urls) & !urls %in% c("", " ")]
 
-  events <- cny_scrape_events(urls)
+
+  events <- scrape_function(urls)
   events$acny_url <- add_trailing_slash(events$acny_url)
 
   dplyr::left_join(result, events, by = "acny_url")
+}
+
+cny_query_events <- function(...){
+  cny_query_scrape(cny_scrape_events, ...)
+}
+
+cny_query_contact <- function(...){
+  cny_query_scrape(cny_scrape_contact, ...)
 }
 
 add_trailing_slash <- function(x){

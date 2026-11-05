@@ -3,7 +3,20 @@
 ## get cny url num from url
 
 cny_url_num <- function(url){
-  stringr::str_extract(url, "\\d+")
+  out <- stringr::str_extract(url, "\\d+")
+  if(any(is.na(out))) stop("Missing/invalid URLs provided")
+  out
+}
+
+map_request_make <- function(url, path){
+
+  num <- cny_url_num(url)
+
+  purrr::map(num,
+             \(x){
+               cny_request(x) |>
+                 httr2::req_url_path_append(path)
+             })
 }
 
 ## Create a httr2 request for use by this package
@@ -23,6 +36,22 @@ map_append_path <- function(request_list, append_this){
 
 }
 
+parallel_html_get <- function(req_list){
+
+  httr2::req_perform_parallel(
+    req_list,
+    progress = "Obtaining Church Near You Data") |>
+
+    purrr::map(httr2::resp_body_html)
+
+}
+
+cny_page_url <- function(req){
+
+  stringr::str_extract(req$url, "https://www.achurchnearyou.com/church/\\d+/")
+
+}
+
 get_text <- function(x) rvest::html_text(x, trim = TRUE)
 
 ## EXPORTS ##
@@ -32,29 +61,18 @@ get_text <- function(x) rvest::html_text(x, trim = TRUE)
 cny_scrape_events <- function(cny_url){
 
   ## Perform requests and parse html data -------------------------------------------------
+  requests <- map_request_make(cny_url, "service-and-events/events-all/")
 
-  cny_nums <- cny_url_num(cny_url)
-
-  if(any(is.na(cny_nums))) stop("Missing/unnaceptable URLs provided.")
-
-  requests <- purrr::map(cny_nums, cny_request)
-  request_strings <- purrr::map_chr(requests, "url")
-
-  events_req <- map_append_path(requests, "service-and-events/events-all/")
-
-  events_resp <- httr2::req_perform_parallel(events_req, progress = "Obtaining Church Near You Data")
-
-  events_html <- purrr::map(events_resp, httr2::resp_body_html)
+  events_html <- parallel_html_get(requests)
 
   ## Extract 'event cards' for each cny url ------------------------------------------------
-
   events_data_per_church <-
 
     purrr::map2(
 
-      events_html, request_strings,
+      events_html, events_req,
 
-      \(result, url_string){
+      \(result, req){
 
         events <- rvest::html_elements(result, ".card__summary")
 
@@ -135,7 +153,7 @@ cny_scrape_events <- function(cny_url){
 
             # combine into tibble ---
             tibble::tibble(
-              acny_url = url_string,
+              acny_url = cny_page_url(req),
               event_name = event_name_text,
               event_description = event_description_text,
               event_time = event_time_text,
@@ -161,14 +179,62 @@ cny_scrape_events <- function(cny_url){
 cny_scrape_contact <- function(cny_url){
 
   # make requests and parse html ---------------------------------------
-  get_in_touch_req <- map_append_path(cny_url, "/get-in-touch/")
+  contact_req <- map_request_make(cny_url, "/get-in-touch/")
 
-  get_in_touch_resp <-
-    req_perform_parallel(events_req,
-                         progress = "Obtaining Church Near You Data")
+  contact_html <- parallel_html_get(contact_req)
 
-  get_in_touch_html <- purrr::map(events_resp, resp_body_html)
+  contact_data_by_church <-
+    purrr::map2(
+      contact_html, contact_req,
+      \(html, req){
+
+        all_dests <- rvest::html_elements(html, "a") |>
+          html_attr("href")
+
+        phone <-
+          all_dests[stringr::str_detect(all_dests, "tel\\:")] |>
+          stringr::str_remove("tel\\:")
+
+        if(length(phone) == 0) phone <- NA_character_
+
+        external_links <-
+          all_dests[
+            stringr::str_detect(
+              all_dests,
+              "^/|tel\\:|churchofengland|archbishopof(canterbury|york)|https://www.dev.ngo/|media.acny.uk|#|achurchnearyou.com",
+              negate = TRUE
+              )
+          ]
+
+        socials_reprex <- stringr::str_c(socials, collapse = "|")
+
+        website <-
+          external_links[str_detect(external_links, socials_reprex, negate = TRUE)]
+
+        social_links <-
+          purrr::map(socials,
+              \(x){
+                links <- external_links[str_detect(external_links, x)]
+                links[1]
+              })
+
+        socials_tibble <- tibble::as_tibble(social_links)
+
+        tibble(
+          acny_url = cny_page_url(req),
+          website = website[1], phone = phone) |>
+          cbind(socials_tibble)
+
+      })
+
+  purrr::list_rbind(contact_data_by_church)
 
 }
 
-
+socials <- c(
+  facebook = "facebook.com",
+  youtube  = "youtube.com",
+  instagram = "instagram.com",
+  x_twitter = "x.com|twitter.com",
+  tiktok = "tiktok.com"
+)
